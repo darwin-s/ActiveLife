@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "875170977243",
+    "project_id": "activelife-d04f1",
+    "storage_bucket": "activelife-d04f1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:875170977243:android:e3da50de5c3c6ee63d43fe",
+        "android_client_info": {
+          "package_name": "com.darwins.activelife"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3IB0hwWZM0Qfb0tC-EvWYEypsDQ5ZOBQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
