@@ -1,5 +1,6 @@
 package com.darwins.activelife
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.Toast
@@ -8,7 +9,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : AppCompatActivity() {
@@ -34,12 +34,14 @@ class MainActivity : AppCompatActivity() {
 
             if (email.isNotEmpty() && pass.isNotEmpty() && pass2.isNotEmpty()) {
                 if (pass == pass2) {
-
                     firebaseAuth.createUserWithEmailAndPassword(email, pass).addOnCompleteListener {
                         if (it.isSuccessful) {
-                            Toast.makeText(this, "nice", Toast.LENGTH_SHORT).show()
+                            setResult(RESULT_OK)
+                            val intent = Intent(this, HomeActivity::class.java)
+                            startActivity(intent)
+                            finish()
                         } else {
-                            Toast.makeText(this, it.exception.toString(), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, it.exception?.message ?: "Could not register", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } else {
@@ -48,6 +50,13 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "Please fill out all fields!", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        val loginButton = findViewById<Button>(R.id.login_redir)
+
+        loginButton.setOnClickListener {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
         }
     }
 }
