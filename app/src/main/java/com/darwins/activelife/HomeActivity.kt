@@ -83,6 +83,36 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
             val maxDist = sharedPref.getInt("METERS_MAX", 500)
             generateRandomCord(minDist, maxDist)
         }
+
+        binding.startTrip.setOnClickListener {
+            if (currentMarker == null) {
+                Toast.makeText(this, "Please choose a destination first!", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val intent = Intent(this, LocationService::class.java)
+            intent.action = "START"
+            currentMarker?.position?.let { it1 -> intent.putExtra("LAT", it1.latitude) }
+            currentMarker?.position?.let { it1 -> intent.putExtra("LON", it1.longitude) }
+            startService(intent)
+        }
+
+        if (intent.getBooleanExtra("STOP_TRIP", false)) {
+            if (intent.getBooleanExtra("DST_REACH", false)) {
+                Toast.makeText(this, "Congratulations!", Toast.LENGTH_LONG).show()
+            }
+
+            val intent = Intent(this, LocationService::class.java)
+            intent.action = "STOP"
+            startService(intent)
+
+            val newIntent = Intent(this, HomeActivity::class.java)
+            startActivity(newIntent)
+        }
+
+        if (checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), 0)
+        }
     }
 
     private fun generateRandomCord(min: Int, max: Int) {

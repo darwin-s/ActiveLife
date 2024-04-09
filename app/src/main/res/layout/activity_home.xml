@@ -29,6 +29,13 @@
                 android:text="Find new Destination" />
 
             <Button
+                android:id="@+id/startTrip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Start Trip" />
+
+            <Button
                 android:id="@+id/settings"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
