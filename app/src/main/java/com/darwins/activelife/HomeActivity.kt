@@ -1,12 +1,9 @@
 package com.darwins.activelife
 
-import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
 import android.os.Bundle
-import android.widget.Button
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -14,39 +11,65 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.darwins.activelife.api.Road
+import com.darwins.activelife.api.RoadsApi
+import com.darwins.activelife.api.RoadsInterface
+import com.darwins.activelife.databinding.ActivityHomeBinding
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.firebase.auth.FirebaseAuth
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.util.Random
+import kotlin.math.min
 
 class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
     private val PERM_REQ = 1
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var gMap: GoogleMap
     private lateinit var fusedClient: FusedLocationProviderClient
+    private lateinit var binding: ActivityHomeBinding
+    private var currentMarker: Marker? = null
+    private var lastDestination: LatLng? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContentView(R.layout.activity_home)
+        binding = ActivityHomeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        firebaseAuth = FirebaseAuth.getInstance()
-        val settingsButton = findViewById<Button>(R.id.settings)
+        if (savedInstanceState != null) {
+            if (savedInstanceState.containsKey("CURRENT_LAT")
+                && savedInstanceState.containsKey("CURRENT_LON")) {
+                lastDestination = LatLng(savedInstanceState.getDouble("CURRENT_LAT"),
+                    savedInstanceState.getDouble("CURRENT_LON"))
+            }
+        }
 
-        settingsButton.setOnClickListener {
+        firebaseAuth = FirebaseAuth.getInstance()
+
+        val sharedPref = getPreferences(Context.MODE_PRIVATE)
+        if (!sharedPref.contains("METERS_MAX")) {
+            with(sharedPref.edit()) {
+                putInt("METERS_MAX", 500)
+                apply()
+            }
+        }
+
+        binding.settings.setOnClickListener {
             val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
         }
@@ -54,6 +77,74 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
+
+        binding.dest.setOnClickListener {
+            val minDist = min(10, sharedPref.getInt("METERS_MAX", 10))
+            val maxDist = sharedPref.getInt("METERS_MAX", 500)
+            generateRandomCord(minDist, maxDist)
+        }
+    }
+
+    private fun generateRandomCord(min: Int, max: Int) {
+        if (ContextCompat.checkSelfPermission(this, "android.permission.ACCESS_FINE_LOCATION") != PackageManager.PERMISSION_GRANTED
+            && ContextCompat.checkSelfPermission(this, "android.permission.ACCESS_COARSE_LOCATION") != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+
+        fusedClient.lastLocation.addOnSuccessListener {
+            val meterCord = 0.00900900900901 / 1000
+            val rand = Random()
+
+            val randomMeter = rand.nextInt(max + min)
+            val method = rand.nextInt(6)
+            val metersCord = meterCord * randomMeter.toDouble()
+
+            var loc = when (method) {
+                0 -> {
+                    LatLng(it.latitude + metersCord, it.longitude + metersCord)
+                }
+                1 -> {
+                    LatLng(it.latitude - metersCord, it.longitude - metersCord)
+                }
+                2 -> {
+                    LatLng(it.latitude + metersCord, it.longitude - metersCord)
+                }
+                3 -> {
+                    LatLng(it.latitude - metersCord, it.longitude + metersCord)
+                }
+                4 -> {
+                    LatLng(it.latitude, it.longitude - metersCord)
+                }
+                else -> {
+                    LatLng(it.latitude - metersCord, it.longitude)
+                }
+            }
+
+            val roadApi = RoadsApi().instance.create(RoadsInterface::class.java)
+            val pts = loc.latitude.toString() + "," + loc.longitude.toString()
+            val call = roadApi.nearestRoad(pts, BuildConfig.MAPS_API_KEY)
+            call.enqueue(object : Callback<Road> {
+                override fun onResponse(call: Call<Road>, response: Response<Road>) {
+                    if (response.isSuccessful) {
+                        val body = response.body()
+
+                        if (body != null) {
+                            loc = LatLng(body.snappedPoints[0].location.latitude.toDouble(),
+                                body.snappedPoints[0].location.longitude.toDouble())
+
+                            currentMarker?.remove()
+                            currentMarker = gMap.addMarker(MarkerOptions().position(loc))
+                        }
+                    } else {
+                        Toast.makeText(this@HomeActivity, "Failed to access road API. Please try again", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onFailure(call: Call<Road>, t: Throwable) {
+                    Toast.makeText(this@HomeActivity, "Failed to access road API. Please try again", Toast.LENGTH_SHORT).show()
+                }
+            })
+        }
     }
 
     private fun enableMyLocation() {
@@ -78,6 +169,12 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
                 gMap.animateCamera(CameraUpdateFactory.newLatLngZoom(loc, 15.0f))
             }
         }
+
+        if (lastDestination != null) {
+            currentMarker?.remove()
+            currentMarker = gMap.addMarker(MarkerOptions().position(lastDestination!!))
+            lastDestination = null
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -95,5 +192,12 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
                Toast.makeText(this, "The application cannot run without location permissions!", Toast.LENGTH_LONG).show()
            }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+
+        currentMarker?.position?.let { outState.putDouble("CURRENT_LAT", it.latitude) }
+        currentMarker?.position?.let { outState.putDouble("CURRENT_LON", it.longitude) }
     }
 }

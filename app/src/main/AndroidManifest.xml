@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -21,10 +22,6 @@
         <activity
             android:name=".HomeActivity"
             android:exported="false" />
-        <activity
-            android:name=".ui.login.LoginActivity2"
-            android:exported="false"
-            android:label="@string/title_activity_login2" />
         <activity
             android:name=".LoginActivity"
             android:exported="false" />
