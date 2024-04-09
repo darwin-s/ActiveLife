@@ -44,18 +44,11 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         firebaseAuth = FirebaseAuth.getInstance()
-        val logoutButton = findViewById<Button>(R.id.logout)
+        val settingsButton = findViewById<Button>(R.id.settings)
 
-        logoutButton.setOnClickListener {
-            if (firebaseAuth.currentUser != null) {
-                firebaseAuth.signOut()
-            }
-
-            setResult(RESULT_OK)
-
-            val intent = Intent(this, MainActivity::class.java)
+        settingsButton.setOnClickListener {
+            val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
-            finish()
         }
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
