@@ -6,6 +6,10 @@
         android:title="Settings" />
 
     <item
+        android:id="@+id/leaderboard_nav"
+        android:title="Leaderboard" />
+
+    <item
         android:id="@+id/logout_nav"
         android:title="Logout" />
 </menu>

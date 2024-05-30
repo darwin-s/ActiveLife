@@ -76,6 +76,10 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
                     startActivity(intent)
                     finish()
                 }
+                R.id.leaderboard_nav -> {
+                    val intent = Intent(this, LeaderboardActivity::class.java)
+                    startActivity(intent)
+                }
             }
             true
         }
