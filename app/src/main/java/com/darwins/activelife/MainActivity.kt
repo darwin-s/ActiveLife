@@ -2,29 +2,27 @@ package com.darwins.activelife
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatEditText
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import com.darwins.activelife.dto.User
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 
 class MainActivity : AppCompatActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
+    private lateinit var database: DatabaseReference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
 
         firebaseAuth = FirebaseAuth.getInstance()
+        database = Firebase.database("https://activelife-d04f1-default-rtdb.europe-west1.firebasedatabase.app/").reference
         val regButton = findViewById<Button>(R.id.reg)
 
         regButton.setOnClickListener{
@@ -36,6 +34,8 @@ class MainActivity : AppCompatActivity() {
                 if (pass == pass2) {
                     firebaseAuth.createUserWithEmailAndPassword(email, pass).addOnCompleteListener {
                         if (it.isSuccessful) {
+                            firebaseAuth.uid?.let { it1 -> database.child("users").child(it1).setValue(User()) }
+
                             setResult(RESULT_OK)
                             val intent = Intent(this, HomeActivity::class.java)
                             startActivity(intent)

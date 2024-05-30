@@ -1,29 +1,28 @@
 package com.darwins.activelife
 
+import android.R.attr.label
+import android.R.attr.text
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.darwins.activelife.databinding.ActivitySettingsBinding
 import com.google.firebase.auth.FirebaseAuth
+private lateinit var firebaseAuth: FirebaseAuth
+
 
 class SettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySettingsBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+
+        firebaseAuth = FirebaseAuth.getInstance()
 
         val sharedPref = getSharedPreferences("ActiveLife", Context.MODE_PRIVATE)
         if (!sharedPref.contains("METERS_MAX")) {
@@ -51,6 +50,16 @@ class SettingsActivity : AppCompatActivity() {
             }
 
             Toast.makeText(this, "Settings saved", Toast.LENGTH_SHORT).show()
+        }
+
+        binding.useridText.text = firebaseAuth.currentUser?.uid ?: ""
+
+        binding.copyUid.setOnClickListener {
+            val clipboard: ClipboardManager =
+                getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Active Life User ID", binding.useridText.text)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Copied the user id to the clipboard!", Toast.LENGTH_SHORT).show()
         }
     }
 }

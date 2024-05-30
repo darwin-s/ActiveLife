@@ -14,6 +14,7 @@ import com.darwins.activelife.api.Road
 import com.darwins.activelife.api.RoadsApi
 import com.darwins.activelife.api.RoadsInterface
 import com.darwins.activelife.databinding.ActivityHomeBinding
+import com.darwins.activelife.dto.User
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -24,6 +25,9 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -39,6 +43,8 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
     private var currentMarker: Marker? = null
     private var lastDestination: LatLng? = null
     private lateinit var actionBarDrawerToggle: ActionBarDrawerToggle
+    private var currentDistance = 0
+    private lateinit var database: DatabaseReference
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +52,7 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
         setContentView(binding.root)
 
         firebaseAuth = FirebaseAuth.getInstance()
+        database = Firebase.database("https://activelife-d04f1-default-rtdb.europe-west1.firebasedatabase.app/").reference
 
         actionBarDrawerToggle = ActionBarDrawerToggle(this, binding.main, R.string.open_nav, R.string.close_nav)
         binding.main.addDrawerListener(actionBarDrawerToggle)
@@ -89,9 +96,11 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
 
         if (savedInstanceState != null) {
             if (savedInstanceState.containsKey("CURRENT_LAT")
-                && savedInstanceState.containsKey("CURRENT_LON")) {
+                && savedInstanceState.containsKey("CURRENT_LON")
+                && savedInstanceState.containsKey("DST")) {
                 lastDestination = LatLng(savedInstanceState.getDouble("CURRENT_LAT"),
                     savedInstanceState.getDouble("CURRENT_LON"))
+                currentDistance = savedInstanceState.getInt("DST")
             }
         }
 
@@ -110,14 +119,25 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
             intent.action = "START"
             currentMarker?.position?.let { it1 -> intent.putExtra("LAT", it1.latitude) }
             currentMarker?.position?.let { it1 -> intent.putExtra("LON", it1.longitude) }
+            intent.putExtra("DST", currentDistance)
             startService(intent)
         }
 
         if (intent.getBooleanExtra("STOP_TRIP", false)) {
             if (intent.getBooleanExtra("DST_REACH", false)) {
-                Toast.makeText(this, "Congratulations!", Toast.LENGTH_LONG).show()
-            }
+                val distance = intent.getIntExtra("DST", 0)
+                Toast.makeText(this, "Congratulations! You walked $distance meters!", Toast.LENGTH_LONG).show()
 
+                firebaseAuth.uid?.let { uid ->
+                    database.child("users").child(uid).get().addOnSuccessListener {
+                    val usr = it.getValue(User::class.java)
+                    val updates = hashMapOf<String, Any>(
+                        "totalDistance" to ((usr?.totalDistance ?: 0) + distance),
+                    )
+
+                    firebaseAuth.uid?.let { uid -> database.child("users").child(uid).updateChildren(updates) }
+                } }
+            }
             val intent = Intent(this, LocationService::class.java)
             intent.action = "STOP"
             startService(intent)
@@ -142,6 +162,7 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
             val rand = Random()
 
             val randomMeter = rand.nextInt(max + min)
+            currentDistance = randomMeter
             val method = rand.nextInt(6)
             val metersCord = meterCord * randomMeter.toDouble()
 
@@ -244,6 +265,7 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
 
         currentMarker?.position?.let { outState.putDouble("CURRENT_LAT", it.latitude) }
         currentMarker?.position?.let { outState.putDouble("CURRENT_LON", it.longitude) }
+        outState.putInt("DST", currentDistance)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {

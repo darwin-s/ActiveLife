@@ -23,6 +23,7 @@ import com.google.android.gms.maps.model.LatLng
 
 class LocationService : Service() {
     private lateinit var destination: LatLng
+    private var dstn = 0
     private lateinit var fusedClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
     override fun onBind(intent: Intent?): IBinder? {
@@ -34,6 +35,7 @@ class LocationService : Service() {
             "START" -> {
                 destination = LatLng(intent.getDoubleExtra("LAT", 0.0),
                     intent.getDoubleExtra("LON", 0.0))
+                dstn = intent.getIntExtra("DST", 0)
                 start()
             }
             "STOP" -> stop()
@@ -80,6 +82,7 @@ class LocationService : Service() {
 
                     if (distance < 10.0) {
                         intent.putExtra("DST_REACH", true)
+                        intent.putExtra("DST", dstn)
                         pendingIntent = PendingIntent.getActivity(this@LocationService, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
                         val updatedNotification = notification.setContentTitle("Destination reached!")
                             .setContentText("Press to finish the trip")
