@@ -13,7 +13,6 @@ import com.google.firebase.auth.FirebaseAuth
 
 class SettingsActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySettingsBinding
-    private lateinit var firebaseAuth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,9 +25,7 @@ class SettingsActivity : AppCompatActivity() {
             insets
         }
 
-        firebaseAuth = FirebaseAuth.getInstance()
-
-        val sharedPref = getPreferences(Context.MODE_PRIVATE)
+        val sharedPref = getSharedPreferences("ActiveLife", Context.MODE_PRIVATE)
         if (!sharedPref.contains("METERS_MAX")) {
             binding.mMax.setText("500")
             with(sharedPref.edit()) {
@@ -43,18 +40,6 @@ class SettingsActivity : AppCompatActivity() {
             val intent = Intent(this, HomeActivity::class.java)
             setResult(RESULT_OK)
 
-            startActivity(intent)
-            finish()
-        }
-
-        binding.logoutSettings.setOnClickListener {
-            if (firebaseAuth.currentUser != null) {
-                firebaseAuth.signOut()
-            }
-
-            setResult(RESULT_OK)
-
-            val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
             finish()
         }

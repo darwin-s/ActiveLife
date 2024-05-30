@@ -1,9 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.ActiveLife" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.ActiveLife" parent="Theme.Material3.DayNight">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="colorPrimary">@color/blue</item>
+        <item name="colorPrimaryVariant">@color/blue_dark</item>
+        <item name="android:statusBarColor" >?attr/colorPrimaryVariant</item>
     </style>
-
-    <style name="Theme.ActiveLife" parent="Base.Theme.ActiveLife" />
 </resources>

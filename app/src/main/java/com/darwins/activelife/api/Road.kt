@@ -2,26 +2,26 @@ package com.darwins.activelife.api
 
 import com.google.gson.annotations.SerializedName
 
-class Road {
+data class Road(
     @SerializedName("snappedPoints")
-    lateinit var snappedPoints: Array<SnappedPoint>
+    val snappedPoints: Array<SnappedPoint>
+)
 
-    class SnappedPoint {
-        @SerializedName("location")
-        lateinit var location: Location
+data class SnappedPoint(
+    @SerializedName("location")
+    val location: Location,
 
-        @SerializedName("placeId")
-        lateinit var placeId: String
+    @SerializedName("placeId")
+    val placeId: String,
 
-        @SerializedName("originalIndex")
-        lateinit var originalIndex: Number
+    @SerializedName("originalIndex")
+    val originalIndex: Number,
+)
 
-        class Location {
-            @SerializedName("latitude")
-            lateinit var latitude: Number
+data class Location (
+    @SerializedName("latitude")
+    val latitude: Number,
 
-            @SerializedName("longitude")
-            lateinit var longitude: Number
-        }
-    }
-}
+    @SerializedName("longitude")
+    val longitude: Number
+)

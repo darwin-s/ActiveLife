@@ -4,13 +4,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.MenuItem
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.darwins.activelife.api.Road
 import com.darwins.activelife.api.RoadsApi
 import com.darwins.activelife.api.RoadsInterface
@@ -39,16 +38,53 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityHomeBinding
     private var currentMarker: Marker? = null
     private var lastDestination: LatLng? = null
+    private lateinit var actionBarDrawerToggle: ActionBarDrawerToggle
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+
+        firebaseAuth = FirebaseAuth.getInstance()
+
+        actionBarDrawerToggle = ActionBarDrawerToggle(this, binding.main, R.string.open_nav, R.string.close_nav)
+        binding.main.addDrawerListener(actionBarDrawerToggle)
+        actionBarDrawerToggle.syncState()
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        binding.navmenu.setNavigationItemSelectedListener {
+            when (it.itemId) {
+                R.id.settings_nav -> {
+                    val intent = Intent(this, SettingsActivity::class.java)
+                    startActivity(intent)
+                }
+                R.id.logout_nav -> {
+                    if (firebaseAuth.currentUser != null) {
+                        firebaseAuth.signOut()
+                    }
+
+                    setResult(RESULT_OK)
+
+                    val intent = Intent(this, MainActivity::class.java)
+                    startActivity(intent)
+                    finish()
+                }
+            }
+            true
+        }
+
+        val sharedPref = getSharedPreferences("ActiveLife", Context.MODE_PRIVATE)
+        if (!sharedPref.contains("METERS_MAX")) {
+            with(sharedPref.edit()) {
+                putInt("METERS_MAX", 500)
+                apply()
+            }
+        }
+
+        binding.findLoc.setOnClickListener {
+            val minDist = min(10, sharedPref.getInt("METERS_MAX", 10))
+            val maxDist = sharedPref.getInt("METERS_MAX", 500)
+            generateRandomCord(minDist, maxDist)
         }
 
         if (savedInstanceState != null) {
@@ -59,30 +95,10 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
 
-        firebaseAuth = FirebaseAuth.getInstance()
-
-        val sharedPref = getPreferences(Context.MODE_PRIVATE)
-        if (!sharedPref.contains("METERS_MAX")) {
-            with(sharedPref.edit()) {
-                putInt("METERS_MAX", 500)
-                apply()
-            }
-        }
-
-        binding.settings.setOnClickListener {
-            val intent = Intent(this, SettingsActivity::class.java)
-            startActivity(intent)
-        }
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
-
-        binding.dest.setOnClickListener {
-            val minDist = min(10, sharedPref.getInt("METERS_MAX", 10))
-            val maxDist = sharedPref.getInt("METERS_MAX", 500)
-            generateRandomCord(minDist, maxDist)
-        }
 
         binding.startTrip.setOnClickListener {
             if (currentMarker == null) {
@@ -158,16 +174,15 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
                     if (response.isSuccessful) {
                         val body = response.body()
 
-                        if (body != null) {
+                        if (body?.snappedPoints != null && body.snappedPoints.isNotEmpty()) {
                             loc = LatLng(body.snappedPoints[0].location.latitude.toDouble(),
                                 body.snappedPoints[0].location.longitude.toDouble())
-
-                            currentMarker?.remove()
-                            currentMarker = gMap.addMarker(MarkerOptions().position(loc))
                         }
                     } else {
                         Toast.makeText(this@HomeActivity, "Failed to access road API. Please try again", Toast.LENGTH_SHORT).show()
                     }
+                    currentMarker?.remove()
+                    currentMarker = gMap.addMarker(MarkerOptions().position(loc))
                 }
 
                 override fun onFailure(call: Call<Road>, t: Throwable) {
@@ -229,5 +244,13 @@ class HomeActivity : AppCompatActivity(), OnMapReadyCallback {
 
         currentMarker?.position?.let { outState.putDouble("CURRENT_LAT", it.latitude) }
         currentMarker?.position?.let { outState.putDouble("CURRENT_LON", it.longitude) }
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return if (actionBarDrawerToggle.onOptionsItemSelected(item)) {
+            true
+        } else {
+            super.onOptionsItemSelected(item)
+        }
     }
 }
