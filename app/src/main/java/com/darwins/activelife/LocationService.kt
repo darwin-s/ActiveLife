@@ -66,11 +66,12 @@ class LocationService : Service() {
             .setSmallIcon(R.drawable.ic_launcher_background)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         fusedClient = LocationServices.getFusedLocationProviderClient(this)
-        val request = LocationRequest.Builder(10000L).setPriority(Priority.PRIORITY_HIGH_ACCURACY).build()
+        val request = LocationRequest.Builder(1000L).setPriority(Priority.PRIORITY_HIGH_ACCURACY).build()
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(location: LocationResult) {
                 val loc = location.lastLocation
